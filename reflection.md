@@ -44,3 +44,69 @@ Streamlit "reruns" are like refreshing a web page: every click triggers a fresh 
 One habit I want to carry forward is writing a failing test *before* I fix a bug - the "Too High rewards points" bug was invisible until I had a test that quantified the expected score. Having a concrete assertion (`assert result == 95`) made the problem undeniable and the fix verifiable. In future projects I'll write the test first so I know precisely when the bug is gone.
 
 Next time I work with AI on a coding task I would share the full file context earlier, not just a description of the symptom. The AI's misleading floating-point suggestion happened because I described the symptom verbally without showing the actual code; once I pasted the submit block, the AI immediately spotted the `str()` cast. This project reinforced that AI-generated code needs the same careful human review as any other code - it can contain subtle, intentional-looking bugs that only reveal themselves under specific conditions.
+
+---
+
+## 6. Challenge 5 - AI Model Comparison
+
+**Bug used:** The inverted hints bug in `check_guess` - `"Go HIGHER!"` was returned when the guess was *above* the secret, and `"Go LOWER!"` when it was *below*.
+
+### Claude (Anthropic Claude Sonnet 4.6)
+
+**Prompt given:** "In my `check_guess` function, the hints are inverted - when my guess is higher than the secret it says 'Go HIGHER!' and when it's lower it says 'Go LOWER!'. Here is the function: [pasted full function]"
+
+**Fix provided:**
+
+```python
+if guess > secret:
+    return "Too High", "📉 Go LOWER!"
+else:
+    return "Too Low", "📈 Go HIGHER!"
+```
+
+**Explanation quality:** Claude immediately identified the root cause - the return values for the two branches were swapped. It walked through a concrete example (`guess=60, secret=50` → `60 > 50` is True → player is too high → tell them to go lower), confirmed the corrected logic step by step, and suggested adding a pytest case to prevent regression:
+
+```python
+def test_hint_too_high_says_go_lower():
+    _, message = check_guess(60, 50)
+    assert "LOWER" in message.upper()
+```
+
+It also noted that the emoji choice (`📉` for too high, `📈` for too low) reinforces the direction visually, which the original bug had also reversed.
+
+---
+
+### ChatGPT (GPT-4o)
+
+**Same prompt and function pasted.**
+
+**Fix provided:**
+
+```python
+if guess > secret:
+    return "Too High", "Go LOWER!"
+else:
+    return "Too Low", "Go HIGHER!"
+```
+
+**Explanation quality:** ChatGPT correctly swapped the strings and explained: *"The condition `guess > secret` means the player guessed too high, so you should tell them to go lower."* The fix was accurate and concise. However, it did not suggest a test, did not mention the emoji mismatch, and did not walk through a numeric example.
+
+---
+
+### Comparison
+
+| | Claude Sonnet 4.6 | ChatGPT GPT-4o |
+|---|---|---|
+| **Correct fix?** | ✅ Yes | ✅ Yes |
+| **Explained the "why"?** | ✅ Step-by-step with example | Partial - one sentence |
+| **Suggested a test?** | ✅ Yes | ❌ No |
+| **Caught emoji mismatch?** | ✅ Yes | ❌ No |
+| **Readability of fix** | Clean, added inline comment | Clean, no comment |
+
+**Which gave a more readable fix?**
+Both were readable. Claude added a brief comment explaining the logic; ChatGPT left the code uncommented. For a future reader the comment is helpful.
+
+**Which explained the "why" more clearly?**
+Claude - it used a numeric walk-through (`60 > 50 is True → too high → go lower`) that made the corrected logic impossible to misread. ChatGPT's single-sentence explanation was correct but could still leave a beginner unsure. Providing a test alongside the fix is also a meaningful advantage: it turns the explanation into something verifiable.
+
+**Takeaway:** Both models identified the bug immediately when shown the full function. The practical difference was in the *depth* of guidance: Claude treated the fix as an opportunity to reinforce the reasoning and harden the codebase, while ChatGPT solved the immediate problem efficiently. Depending on the situation (quick fix vs. learning context) either approach could be more appropriate.
