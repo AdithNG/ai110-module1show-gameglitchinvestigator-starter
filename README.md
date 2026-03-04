@@ -50,4 +50,43 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 🚀 Stretch Features
 
-- [ ] [If you choose to complete Challenge 4, insert a screenshot of your Enhanced Game UI here]
+### Challenge 1 - Advanced Edge-Case Testing
+Added 19 new pytest cases in `tests/test_game_logic.py` covering:
+- **Negative numbers** (`"-5"` parses to `-5`; a negative guess returns "Too Low")
+- **Decimal truncation** (`"7.9"` → `7`, not `8`) and negative decimals (`"-3.7"` → `-3`)
+- **Extremely large values** (`"999999999999"` parses without error)
+- **Whitespace-only input** (correctly rejected as invalid)
+- **Boundary guesses** (exactly one above / one below the secret)
+- **Score floor** (winning on attempt 20 still awards the minimum 10 points)
+- **Zero range / zero distance** edge cases in `get_hot_cold_label`
+
+All 26 tests pass: `pytest tests/test_game_logic.py -v`.
+
+### Challenge 2 - High Score Tracker
+Created `high_score.py` with `load_high_score()` and `save_high_score()`.
+- Scores are persisted to `highscore.json` next to the module.
+- The sidebar shows **All-Time High Score** and **Current Score** metrics.
+- When a player wins and beats the record, the app announces it with a trophy banner.
+- All I/O errors are silently swallowed so a corrupt file never crashes the game.
+
+### Challenge 3 - Professional Documentation and PEP 8
+Rewrote every function in `logic_utils.py` with Google-style docstrings including
+`Args`, `Returns`, and `Examples` sections.  Added the new `get_hot_cold_label`
+helper with full documentation.  PEP 8 compliance verified (line lengths, spacing,
+blank lines between top-level definitions).
+
+### Challenge 4 - Enhanced Game UI
+- **Color-coded hints**: wrong guesses use `st.error` (red) for "Too High" and
+  `st.info` (blue) for "Too Low" instead of the neutral `st.warning`.
+- **Hot/Cold proximity label**: every hint now appends one of
+  🔥 Burning Hot! / ♨️ Hot / 😐 Warm / ❄️ Cold / 🧊 Ice Cold!
+  based on how close the guess was to the secret (scaled to the difficulty range).
+- **Session history table**: a `📊 Guess History` section appears after the first
+  guess showing attempt number, guess value, direction result, distance, and
+  the hot/cold label for every valid guess in the current game.
+
+![Challenge 4 enhanced UI screenshot](Challenge4.png)
+
+### Challenge 5 - AI Model Comparison
+See the bottom of `reflection.md` for a head-to-head comparison of
+Claude Sonnet 4.6 vs. ChatGPT GPT-4o on the inverted-hints bug fix.
