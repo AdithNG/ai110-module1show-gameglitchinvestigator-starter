@@ -2,13 +2,24 @@ import random
 import streamlit as st
 
 # FIX: logic moved out of app.py and into logic_utils.py (Refactor)
-from logic_utils import get_range_for_difficulty, parse_guess, check_guess, update_score
+from logic_utils import (
+    get_range_for_difficulty,
+    parse_guess,
+    check_guess,
+    update_score,
+    get_hot_cold_label,  # Challenge 4: Hot/Cold proximity labels
+)
+# Challenge 2: persistent high-score tracker
+from high_score import load_high_score, save_high_score
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
 st.title("🎮 Game Glitch Investigator")
 st.caption("An AI-generated guessing game. Something is off.")
 
+# ---------------------------------------------------------------------------
+# Sidebar - settings + scoreboard
+# ---------------------------------------------------------------------------
 st.sidebar.header("Settings")
 
 difficulty = st.sidebar.selectbox(
@@ -29,6 +40,15 @@ low, high = get_range_for_difficulty(difficulty)
 st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
 
+# Challenge 2: show high score in sidebar
+st.sidebar.divider()
+st.sidebar.subheader("🏆 Scoreboard")
+st.sidebar.metric("All-Time High Score", load_high_score())
+st.sidebar.metric("Current Score", st.session_state.get("score", 0))
+
+# ---------------------------------------------------------------------------
+# Session-state initialisation
+# ---------------------------------------------------------------------------
 if "secret" not in st.session_state:
     st.session_state.secret = random.randint(low, high)
 
@@ -45,6 +65,13 @@ if "status" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# Challenge 4: richer per-guess records for the history table
+if "guess_details" not in st.session_state:
+    st.session_state.guess_details = []
+
+# ---------------------------------------------------------------------------
+# Main game area
+# ---------------------------------------------------------------------------
 st.subheader("Make a guess")
 
 st.info(
@@ -80,6 +107,7 @@ if new_game:
     st.session_state.status = "playing"
     st.session_state.history = []
     st.session_state.score = 0
+    st.session_state.guess_details = []
     st.success("New game started.")
     st.rerun()
 
@@ -105,8 +133,30 @@ if submit:
         # which broke comparisons. Always pass the integer secret.
         outcome, message = check_guess(guess_int, st.session_state.secret)
 
+        # Challenge 4: compute proximity for Hot/Cold label
+        distance = abs(guess_int - st.session_state.secret)
+        total_range = high - low
+        hot_cold = get_hot_cold_label(distance, total_range)
+
+        # Store richer record for the session-history table
+        st.session_state.guess_details.append({
+            "attempt": st.session_state.attempts,
+            "guess": guess_int,
+            "outcome": outcome,
+            "distance": distance,
+            "hot_cold": hot_cold,
+        })
+
+        # Challenge 4: color-coded, emoji-enhanced hint display
         if show_hint:
-            st.warning(message)
+            if outcome == "Win":
+                st.success(message)
+            elif outcome == "Too High":
+                # Red = danger / go down
+                st.error(f"{message}  •  {hot_cold}")
+            else:
+                # Blue = informational / go up
+                st.info(f"{message}  •  {hot_cold}")
 
         st.session_state.score = update_score(
             current_score=st.session_state.score,
@@ -117,10 +167,18 @@ if submit:
         if outcome == "Win":
             st.balloons()
             st.session_state.status = "won"
-            st.success(
-                f"You won! The secret was {st.session_state.secret}. "
-                f"Final score: {st.session_state.score}"
-            )
+            # Challenge 2: update high score if this run beats the record
+            new_record = save_high_score(st.session_state.score)
+            if new_record:
+                st.success(
+                    f"🏆 NEW HIGH SCORE: {st.session_state.score}!  "
+                    f"The secret was {st.session_state.secret}."
+                )
+            else:
+                st.success(
+                    f"You won! The secret was {st.session_state.secret}. "
+                    f"Final score: {st.session_state.score}"
+                )
         else:
             if st.session_state.attempts >= attempt_limit:
                 st.session_state.status = "lost"
@@ -129,6 +187,28 @@ if submit:
                     f"The secret was {st.session_state.secret}. "
                     f"Score: {st.session_state.score}"
                 )
+
+# ---------------------------------------------------------------------------
+# Challenge 4: Session history table
+# ---------------------------------------------------------------------------
+if st.session_state.guess_details:
+    st.divider()
+    st.subheader("📊 Guess History")
+
+    outcome_icon = {"Win": "🎉", "Too High": "📉", "Too Low": "📈"}
+
+    rows = [
+        {
+            "#": d["attempt"],
+            "Guess": d["guess"],
+            "Result": f"{outcome_icon.get(d['outcome'], '')} {d['outcome']}",
+            "Distance": d["distance"],
+            "Proximity": d["hot_cold"],
+        }
+        for d in st.session_state.guess_details
+    ]
+
+    st.dataframe(rows, hide_index=True, use_container_width=True)
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")
