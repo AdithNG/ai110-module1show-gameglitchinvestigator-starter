@@ -89,4 +89,4 @@ blank lines between top-level definitions).
 
 ### Challenge 5 - AI Model Comparison
 See the bottom of `reflection.md` for a head-to-head comparison of
-Claude Sonnet 4.6 vs. ChatGPT GPT-4o on the inverted-hints bug fix.
+Claude Sonnet 4.6 vs. ChatGPT GPT-5.2 on the inverted-hints bug fix.

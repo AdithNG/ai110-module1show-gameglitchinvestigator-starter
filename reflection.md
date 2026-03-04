@@ -76,7 +76,7 @@ It also noted that the emoji choice (`📉` for too high, `📈` for too low) re
 
 ---
 
-### ChatGPT (GPT-4o)
+### ChatGPT (GPT-5.2)
 
 **Same prompt and function pasted.**
 
@@ -95,7 +95,7 @@ else:
 
 ### Comparison
 
-| | Claude Sonnet 4.6 | ChatGPT GPT-4o |
+| | Claude Sonnet 4.6 | ChatGPT GPT-5.2 |
 |---|---|---|
 | **Correct fix?** | ✅ Yes | ✅ Yes |
 | **Explained the "why"?** | ✅ Step-by-step with example | Partial - one sentence |
